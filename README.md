@@ -80,7 +80,7 @@ Pra testar o visual pelo terminal, sem microfone e sem Claude:
 
 ## Créditos e licenças
 
-- Código: MIT (veja `LICENSE`).
+- Código: [PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0) (veja `LICENSE`). Pode usar, estudar, modificar e compartilhar à vontade, mas **não pode vender nem usar comercialmente**.
 - Fontes [Instrument Sans](https://github.com/Instrument/instrument-sans) e [Instrument Serif](https://github.com/Instrument/instrument-serif): SIL Open Font License (`fontes/OFL-*.txt`).
 - Voz [Dii pt-BR](https://huggingface.co/Phoonnx/pipertts_pt-BR_dii), do OpenVoiceOS: CC BY-NC-ND 4.0, só pra uso não comercial. É baixada pelo instalador, não vem no repositório.
 - Transcrição: [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Voz: [Piper](https://github.com/OHF-Voice/piper1-gpl), [XTTS-v2](https://github.com/idiap/coqui-ai-TTS) (Coqui Public Model License, não comercial) e [Chatterbox](https://github.com/resemble-ai/chatterbox) (MIT).
