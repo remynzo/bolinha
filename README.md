@@ -1,0 +1,75 @@
+# bolinha
+
+Um assistente de voz que parece parte do sistema. Você aperta um atalho, uma bolinha aparece no meio da tela e ouve o que você fala. A resposta vem do [Claude Code](https://claude.com/claude-code): a bolinha estica, vira um cartão e o texto aparece palavra por palavra.
+
+- **Reage à sua voz:** a bolinha cresce enquanto você fala e solta um anel fino a cada pico.
+- **Conversa de verdade:** com o cartão aberto, é só voltar a falar. Ela ouve de novo e lembra do que vocês estavam falando.
+- **Fala quando você pede:** "lê pra mim", "responde em voz alta"… Aí a resposta sai na voz da Dii (Piper, roda local).
+- **Age no PC:** "abre a Steam", "quanto espaço livre eu tenho?". O Claude roda no modo automático do Claude Code, que bloqueia comandos destrutivos.
+- **Quatro estilos:** claro, escuro, anel e orbe (o orbe usa as cores do papel de parede, via wallust).
+
+Feito pra Linux com Hyprland, mas roda em qualquer desktop Wayland/X11 com PipeWire.
+
+## Requisitos
+
+- Linux com **PipeWire** (`pw-record` e `pw-play`)
+- **Claude Code** instalado e logado (`claude auth login`)
+- **Python 3** com PyQt6 (o instalador instala se faltar)
+- Opcional: GPU NVIDIA, pra transcrever em ~0,3s em vez de ~1s
+
+## Instalar
+
+```bash
+git clone https://github.com/remynzo/bolinha.git
+cd bolinha
+./install.sh
+```
+
+O instalador:
+
+- cria um ambiente Python em `~/.local/share/bolinha`;
+- baixa a voz (60 MB) e, se tiver NVIDIA, as bibliotecas CUDA (~2 GB);
+- coloca **Bolinha** e **Bolinha — Ajustes** no menu de apps (rofi, wofi, fuzzel…).
+
+Por último, ele mostra as linhas pra colar no Hyprland, pro atalho (Super + C) e pra janela flutuar sem borda.
+
+## Usar
+
+| | |
+|---|---|
+| Super + C | abre a bolinha (de novo: fecha) |
+| falar | ela para de ouvir sozinha quando você faz uma pausa |
+| clicar na bolinha | "terminei de falar" |
+| clicar no cartão / Esc | fecha |
+| falar com o cartão aberto | pergunta seguinte, com contexto |
+
+## Ajustes
+
+Abra **Bolinha — Ajustes** pelo menu. Dá pra mudar:
+
+- **Aparência:** estilo, cor de destaque, tamanho da bolinha, largura do cartão, fonte, tamanho do texto e velocidade das animações.
+- **Claude:** modelo (Haiku, Sonnet ou Opus), se ele pode agir no PC, se segue ouvindo com o cartão aberto e instruções extras ("me chama pelo apelido", "responde com uma frase").
+- **Voz:** nunca, só quando você pedir ou sempre; e a velocidade da fala.
+- **Microfone:** modelo de transcrição, GPU ou CPU, limiar de fala (com medidor ao vivo), pausa que encerra a gravação e tempo máximo.
+
+O botão **Ver como fica** mostra uma demonstração com os ajustes atuais. Tudo é salvo em `~/.config/bolinha/config.json`.
+
+Pra testar o visual pelo terminal, sem microfone e sem Claude:
+
+```bash
+~/.local/share/bolinha/venv/bin/python bolinha.py --demo       # só texto
+~/.local/share/bolinha/venv/bin/python bolinha.py --demo-voz   # com voz
+```
+
+## Privacidade
+
+- O áudio é transcrito **no seu computador** (faster-whisper) e nunca sai dele.
+- A voz também é gerada localmente (Piper).
+- Só o **texto** da pergunta vai pro Claude, pela sua conta do Claude Code.
+
+## Créditos e licenças
+
+- Código: MIT (veja `LICENSE`).
+- [Instrument Sans](https://github.com/Instrument/instrument-sans): SIL Open Font License (`fontes/OFL.txt`).
+- Voz [Dii pt-BR](https://huggingface.co/Phoonnx/pipertts_pt-BR_dii), do OpenVoiceOS: CC BY-NC-ND 4.0, só pra uso não comercial. É baixada pelo instalador, não vem no repositório.
+- Transcrição: [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Voz: [Piper](https://github.com/OHF-Voice/piper1-gpl).
