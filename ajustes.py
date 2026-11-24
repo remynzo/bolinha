@@ -543,7 +543,7 @@ class Ajustes(QWidget):
         self.seg_voz = self.seg_geral("voz_nome", fala.VOZES)
         self.seg_manter = self.seg_geral("manter_voz_min", {5: "5 min", 15: "15 min", 60: "1 hora", 0: "Sempre"})
         self.aviso_vram = rotulo("Sua placa tem menos de 8 GB: com o Chatterbox carregado, o Whisper grande não cabe junto "
-                                 "e a transcrição vai pro processador (uns 4 s a mais). O XTTS cabe junto sem problema.", "aviso")
+                                 "então a transcrição roda no processador (uns 4 s a mais). O XTTS cabe junto sem problema.", "aviso")
         self.vram = fala.vram_gb()
         motor.mudou.connect(lambda _: self.atualiza_voz())
         self.atualiza_voz()

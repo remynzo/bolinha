@@ -283,7 +283,9 @@ def carrega_whisper():
         if _whisper is None:
             import ctypes, glob
             from faster_whisper import WhisperModel
-            if CFG["usar_gpu"]:
+            # Chatterbox numa placa de menos de 8 GB ocupa quase tudo: o Whisper fica no processador
+            chatterbox = CFG["voz"] != "nunca" and CFG["motor_voz"] == "chatterbox" and 0 < fala.vram_gb() < 8
+            if CFG["usar_gpu"] and not chatterbox:
                 # cuBLAS/cuDNN vêm do pip (pacotes nvidia-*); pré-carrega pro CTranslate2 achar
                 for lib in ("cublasLt.so.12", "cublas.so.12", "cudnn*.so.9"):
                     for f in sorted(glob.glob(os.path.join(sys.prefix, "lib/python3*/site-packages/nvidia/*/lib/lib" + lib))):
