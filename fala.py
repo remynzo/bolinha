@@ -69,7 +69,7 @@ def acordar(motor, manter_min=15):
                 pass
     # se já estiver subindo, a trava do servidor faz esse segundo sair na hora
     subprocess.Popen([python_do_motor(motor), "-I", SERVIDOR, motor, str(int(manter_min * 60))], start_new_session=True,
-                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=open(sock(motor)[:-5] + ".log", "w"))
 
 
 def frases(texto):

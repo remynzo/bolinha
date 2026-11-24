@@ -248,6 +248,8 @@ class BotaoCor(QPushButton):
 
 # ---------- janela ----------
 class Ajustes(QWidget):
+    estado_ouvir = pyqtSignal(str)   # texto do botão Ouvir, vindo da thread que toca
+
     def __init__(self):
         super().__init__()
         self.setObjectName("raiz")
@@ -533,7 +535,8 @@ class Ajustes(QWidget):
             ("Instruções extras", instr)])
 
     def pag_voz(self):
-        ouvir = QPushButton("Ouvir"); ouvir.clicked.connect(self.ouvir_voz)
+        self.btn_ouvir = ouvir = QPushButton("Ouvir"); ouvir.clicked.connect(self.ouvir_voz)
+        self.estado_ouvir.connect(lambda t: (ouvir.setText(t), ouvir.setEnabled(t == "Ouvir")))
         vel = self.desl_geral("velocidade_voz", 0.6, 1.6, 0.05, "{:.2f}×", conv=lambda x: round(1 / x, 3), desconv=lambda x: 1 / x)
         linha = QHBoxLayout(); linha.addWidget(vel, 1); linha.addWidget(ouvir)
         motor = self.seg_geral("motor_voz", fala.MOTORES)
@@ -546,6 +549,8 @@ class Ajustes(QWidget):
                                  "então a transcrição roda no processador (uns 4 s a mais). O XTTS cabe junto sem problema.", "aviso")
         self.vram = fala.vram_gb()
         motor.mudou.connect(lambda _: self.atualiza_voz())
+        # já começa a carregar a voz nova, pra estar pronta quando você abrir a bolinha
+        motor.mudou.connect(lambda m: self.tudo["voz"] != "nunca" and fala.acordar(m, self.tudo["manter_voz_min"]))
         self.atualiza_voz()
         return self.pagina("Voz", [
             ("Responder falando", self.seg_geral("voz", {"nunca": "Nunca", "quando_pedir": "Quando eu pedir", "sempre": "Sempre"}),
@@ -591,12 +596,17 @@ class Ajustes(QWidget):
 
         def tocar():
             try:
+                if not fala.pronto(cfg["motor_voz"]):
+                    self.estado_ouvir.emit("Carregando a voz…")
                 pedacos = list(fala.sintetizar("Oi! É assim que eu vou falar com você.", cfg, espera=60))
                 pcm = b"".join(a.tobytes() for _, a, _ in pedacos)
+                self.estado_ouvir.emit("Falando…")
                 subprocess.run(["pw-play", "--raw", "--rate", str(pedacos[0][0]), "--channels", "1",
                                 "--format", "s16", "-"], input=pcm, stderr=subprocess.DEVNULL)
             except Exception as e:
                 print("voz:", e, file=sys.stderr)
+            finally:
+                self.estado_ouvir.emit("Ouvir")
         threading.Thread(target=tocar, daemon=True).start()
 
     def testar_mic(self, ligado):

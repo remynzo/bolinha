@@ -190,7 +190,8 @@ class Bolha(QWidget):
                 i = int((time.monotonic() - inicio) * 20)
                 c.bandas = env[i] if i < len(env) else [0, 0, 0]
                 time.sleep(0.025)
-        except Exception:
+        except Exception as e:
+            print("voz:", repr(e), file=sys.stderr)
             if sincronizar:
                 c.revelar()  # sem voz: revela no ritmo padrão
         finally:
