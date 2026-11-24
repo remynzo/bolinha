@@ -6,7 +6,7 @@ Um assistente de voz que parece parte do sistema. Você aperta um atalho, uma bo
 - **Conversa de verdade:** com o cartão aberto, é só voltar a falar. Ela ouve de novo e lembra do que vocês estavam falando.
 - **Fala quando você pede:** "lê pra mim", "responde em voz alta"… Aí a resposta sai na voz da Dii (Piper, roda local).
 - **Age no PC:** "abre a Steam", "quanto espaço livre eu tenho?". O Claude roda no modo automático do Claude Code, que bloqueia comandos destrutivos.
-- **Quatro estilos:** claro, escuro, anel e orbe (o orbe usa as cores do papel de parede, via wallust).
+- **Perfis visuais:** 8 prontos (Minimal, Grafite, Anel, Orbe, Neon, Papel, Pontos, Halo), e você cria os seus. Cada um combina um jeito de bolinha, um cartão e uma animação.
 
 Feito pra Linux com Hyprland, mas roda em qualquer desktop Wayland/X11 com PipeWire.
 
@@ -45,14 +45,17 @@ Por último, ele mostra as linhas pra colar no Hyprland, pro atalho (Super + C) 
 
 ## Ajustes
 
-Abra **Bolinha — Ajustes** pelo menu. Dá pra mudar:
+Abra **Bolinha — Ajustes** pelo menu. Tem uma prévia ao vivo no topo e tudo se salva sozinho em `~/.config/bolinha/config.json`.
 
-- **Aparência:** estilo, cor de destaque, tamanho da bolinha, largura do cartão, fonte, tamanho do texto e velocidade das animações.
-- **Claude:** modelo (Haiku, Sonnet ou Opus), se ele pode agir no PC, se segue ouvindo com o cartão aberto e instruções extras ("me chama pelo apelido", "responde com uma frase").
+- **Perfis:** galeria com os perfis prontos e os seus. Dá pra duplicar, renomear, excluir ou restaurar o original.
+- **Bolinha:** disco, anel, orbe, gota, barras, pontos ou halo; cor, cor de destaque e tamanho.
+- **Cartão:** sólido, vidro, contorno neon, balão ou só o texto; cores, cantos, largura, fonte e tamanho do texto.
+- **Animação:** como ela aparece (pop, aparecer, cair, zoom), como vira cartão (mola, suave, elástica, direta), como o texto surge (palavra por palavra, máquina de escrever, linha por linha, tudo de uma vez) e a velocidade.
+- **Claude:** modelo (Haiku, Sonnet ou Opus), se ele pode agir no PC, se segue ouvindo com o cartão aberto e instruções extras.
 - **Voz:** nunca, só quando você pedir ou sempre; e a velocidade da fala.
 - **Microfone:** modelo de transcrição, GPU ou CPU, limiar de fala (com medidor ao vivo), pausa que encerra a gravação e tempo máximo.
 
-O botão **Ver como fica** mostra uma demonstração com os ajustes atuais. Tudo é salvo em `~/.config/bolinha/config.json`.
+O botão **Abrir de verdade** mostra a bolinha real com o perfil atual.
 
 Pra testar o visual pelo terminal, sem microfone e sem Claude:
 
@@ -70,6 +73,6 @@ Pra testar o visual pelo terminal, sem microfone e sem Claude:
 ## Créditos e licenças
 
 - Código: MIT (veja `LICENSE`).
-- [Instrument Sans](https://github.com/Instrument/instrument-sans): SIL Open Font License (`fontes/OFL.txt`).
+- Fontes [Instrument Sans](https://github.com/Instrument/instrument-sans) e [Instrument Serif](https://github.com/Instrument/instrument-serif): SIL Open Font License (`fontes/OFL-*.txt`).
 - Voz [Dii pt-BR](https://huggingface.co/Phoonnx/pipertts_pt-BR_dii), do OpenVoiceOS: CC BY-NC-ND 4.0, só pra uso não comercial. É baixada pelo instalador, não vem no repositório.
 - Transcrição: [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Voz: [Piper](https://github.com/OHF-Voice/piper1-gpl).
