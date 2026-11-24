@@ -30,6 +30,16 @@ def instalado(motor):
     return motor == "piper" or os.path.exists(python_do_motor(motor))
 
 
+def vram_gb():
+    """Memória da placa NVIDIA em GB (0 se não tiver)."""
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=3).stdout
+        return int(out.split()[0]) / 1024
+    except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
+        return 0
+
+
 def sock(motor):
     return os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), f"bolinha-voz-{motor}.sock")
 

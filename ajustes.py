@@ -34,6 +34,7 @@ QPushButton#nav:checked {{ color: {TEXTO}; background: {SUPERFICIE}; }}
 QLabel#secao {{ color: {APAGADO}; font-size: 9pt; padding: 14px 0 2px 6px; }}
 QLabel#titulo {{ font-size: 15pt; font-weight: 600; }}
 QLabel#dica, QLabel#status {{ color: {APAGADO}; font-size: 9pt; }}
+QLabel#aviso {{ color: #ffcf7a; background: #2a2418; border: 1px solid #4a3d22; border-radius: 9px; padding: 8px 10px; font-size: 9pt; }}
 QLabel#valor {{ color: {APAGADO}; min-width: 56px; }}
 QPushButton, QToolButton {{ background: {SUPERFICIE}; border: 1px solid {LINHA}; border-radius: 9px; padding: 7px 14px; }}
 QPushButton:hover, QToolButton:hover {{ border-color: #4a4a55; }}
@@ -61,7 +62,7 @@ def rotulo(texto, nome=None):
     l = QLabel(texto)
     if nome:
         l.setObjectName(nome)
-    l.setWordWrap(nome in ("dica", None))
+    l.setWordWrap(nome in ("dica", "aviso", None))
     l.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
     return l
 
@@ -541,6 +542,9 @@ class Ajustes(QWidget):
                 b.setEnabled(False); b.setToolTip("Instale com ./install.sh --vozes-neurais")
         self.seg_voz = self.seg_geral("voz_nome", fala.VOZES)
         self.seg_manter = self.seg_geral("manter_voz_min", {5: "5 min", 15: "15 min", 60: "1 hora", 0: "Sempre"})
+        self.aviso_vram = rotulo("Sua placa tem menos de 8 GB: com o Chatterbox carregado, o Whisper grande não cabe junto "
+                                 "e a transcrição vai pro processador (uns 4 s a mais). O XTTS cabe junto sem problema.", "aviso")
+        self.vram = fala.vram_gb()
         motor.mudou.connect(lambda _: self.atualiza_voz())
         self.atualiza_voz()
         return self.pagina("Voz", [
@@ -549,6 +553,7 @@ class Ajustes(QWidget):
             ("Motor", motor,
              "Piper é instantâneo e leve. XTTS e Chatterbox soam bem mais naturais e rodam na placa de vídeo "
              "(XTTS é mais rápido e usa ~2 GB; Chatterbox usa ~4 GB)."),
+            ("", self.aviso_vram),
             ("Voz", self.seg_voz),
             ("Manter carregada", self.seg_manter,
              "Depois do último uso, a voz neural fica esse tempo na placa de vídeo pra responder na hora. "
@@ -558,6 +563,7 @@ class Ajustes(QWidget):
     def atualiza_voz(self):
         neural = self.tudo["motor_voz"] != "piper"
         self.seg_voz.setEnabled(neural); self.seg_manter.setEnabled(neural)
+        self.aviso_vram.setVisible(self.tudo["motor_voz"] == "chatterbox" and 0 < self.vram < 8)
 
     def pag_microfone(self):
         self.medidor = QProgressBar(); self.medidor.setRange(0, 3000); self.medidor.setTextVisible(False); self.medidor.setFixedHeight(6)

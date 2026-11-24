@@ -301,9 +301,20 @@ def carrega_whisper():
 
 
 def transcrever(pcm):
+    global _whisper
     audio = np.frombuffer(pcm, np.int16).astype(np.float32) / 32768  # array direto, sem passar pelo PyAV
-    segs, _ = carrega_whisper().transcribe(audio, language="pt", vad_filter=True, beam_size=1)
-    return " ".join(s.text.strip() for s in segs).strip()
+    try:
+        segs, _ = carrega_whisper().transcribe(audio, language="pt", vad_filter=True, beam_size=1)
+        return " ".join(s.text.strip() for s in segs).strip()
+    except RuntimeError as e:
+        if "out of memory" not in str(e).lower():
+            raise
+        # placa cheia (ex.: Chatterbox carregado numa placa de 6 GB): transcreve no processador
+        from faster_whisper import WhisperModel
+        with _lock:
+            _whisper = WhisperModel(CFG["modelo_whisper"], device="cpu", compute_type="int8")
+        segs, _ = _whisper.transcribe(audio, language="pt", vad_filter=True, beam_size=1)
+        return " ".join(s.text.strip() for s in segs).strip()
 
 
 if __name__ == "__main__":
