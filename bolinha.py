@@ -13,10 +13,10 @@ from PyQt6.QtWidgets import QApplication, QWidget
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 import config  # noqa: E402
+import fala  # noqa: E402
 import visual  # noqa: E402
 
 CFG = config.carregar()
-VOZ = os.path.join(config.PASTA_DADOS, "voz", "pt_BR-dii.onnx")
 RATE = 16000
 DEMO = "--demo-voz" if "--demo-voz" in sys.argv else "--demo" if "--demo" in sys.argv else None
 LOCK = os.path.join(tempfile.gettempdir(), f"bolinha-{os.getuid()}.pid")
@@ -111,6 +111,8 @@ class Bolha(QWidget):
     # ---------- trabalho ----------
     def trabalho(self):
         try:
+            if CFG["voz"] != "nunca" and (not DEMO or DEMO == "--demo-voz"):
+                fala.acordar(CFG["motor_voz"], CFG["manter_voz_min"])   # voz neural carrega enquanto você fala
             if DEMO:
                 return self.demo()
             threading.Thread(target=carrega_whisper, daemon=True).start()  # carrega enquanto você fala
@@ -166,37 +168,51 @@ class Bolha(QWidget):
         if self.fechando:
             return
         c.falando = True
-        c.rev_inicio = float("inf")   # segura o texto até a voz começar
+        sincronizar = fala.pronto(CFG["motor_voz"])
+        if sincronizar:
+            c.rev_inicio = float("inf")   # segura o texto até a voz começar
+        else:
+            c.revelar()   # motor de voz ainda carregando: mostra o texto já e a voz entra quando der
         try:
-            from piper import SynthesisConfig
-            voz = carrega_voz()
-            sr = voz.config.sample_rate
-            audio = np.concatenate([x.audio_int16_array for x in voz.synthesize(
-                texto.replace("`", "").replace("*", ""), SynthesisConfig(length_scale=CFG["velocidade_voz"]))])
-            passo = sr // 20
-            env = [bandas(audio[i:i + passo], sr, 2.5) for i in range(0, len(audio) - passo, passo)]
+            pedacos = fala.sintetizar(texto, CFG)
+            sr, audio, frase = next(pedacos)
             if self.fechando:
                 return
             self.player = subprocess.Popen(["pw-play", "--raw", "--rate", str(sr), "--channels", "1", "--format", "s16", "-"],
                                            stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
-            threading.Thread(target=self._toca, args=(audio.tobytes(),), daemon=True).start()
+            env = []   # nível da voz a cada 50ms, cresce conforme as frases chegam
+            threading.Thread(target=self._toca, args=(sr, audio, pedacos, env), daemon=True).start()
             inicio = time.monotonic()
-            c.revelar(inicio, c.n_chars / (len(audio) / sr) * 1.06)  # texto um tiquinho à frente da voz
+            # ritmo do texto pela primeira frase, um tiquinho à frente da voz
+            if sincronizar:
+                c.revelar(inicio, len(frase) / max(len(audio) / sr, 0.3) * 1.06)
             while self.player.poll() is None:
                 i = int((time.monotonic() - inicio) * 20)
                 c.bandas = env[i] if i < len(env) else [0, 0, 0]
                 time.sleep(0.025)
         except Exception:
-            c.revelar()  # sem voz: revela no ritmo padrão
+            if sincronizar:
+                c.revelar()  # sem voz: revela no ritmo padrão
         finally:
             c.bandas, c.falando = [0, 0, 0], False
             self.duracao = max(self.duracao, time.monotonic() - c.t_estado + 3.5)
 
-    def _toca(self, dados):
+    def _toca(self, sr, audio, pedacos, env):
+        passo = sr // 20
         try:
-            self.player.stdin.write(dados); self.player.stdin.close()
-        except OSError:
-            pass  # fechou no meio da fala
+            while True:
+                env.extend(bandas(audio[i:i + passo], sr, 2.5) for i in range(0, len(audio) - passo, passo))
+                self.player.stdin.write(audio.tobytes()); self.player.stdin.flush()
+                if self.fechando:
+                    break
+                _, audio, _ = next(pedacos)
+        except (StopIteration, OSError):
+            pass  # acabou, ou fechou no meio da fala
+        finally:
+            try:
+                self.player.stdin.close()
+            except OSError:
+                pass
 
     def demo(self):
         c = self.cena
@@ -282,14 +298,6 @@ def carrega_whisper():
             if _whisper is None:
                 _whisper = WhisperModel(CFG["modelo_whisper"], device="cpu", compute_type="int8")
     return _whisper
-
-
-def carrega_voz():
-    global _voz
-    if _voz is None:
-        from piper import PiperVoice
-        _voz = PiperVoice.load(VOZ)
-    return _voz
 
 
 def transcrever(pcm):

@@ -20,7 +20,10 @@ GERAL = {
     "continuar_ouvindo": True,    # com o cartão aberto, se você falar vira pergunta nova
     "tempo_extra_cartao": 2.0,    # segundos a mais antes do cartão fechar sozinho
     "voz": "quando_pedir",        # nunca | quando_pedir | sempre
-    "velocidade_voz": 0.95,       # length_scale do Piper: menor = mais rápido
+    "velocidade_voz": 0.95,       # menor = mais rápido
+    "motor_voz": "piper",         # piper | xtts | chatterbox (os dois últimos: ./install.sh --vozes-neurais)
+    "voz_nome": "francisca",      # francisca | antonio (só nos motores neurais)
+    "manter_voz_min": 15,         # minutos que a voz neural fica carregada na GPU depois do último uso; 0 = sempre
     "modelo_whisper": "large-v3-turbo",
     "usar_gpu": True,
     "silencio_rms": 300,          # limiar de fala; desça se cortar você, suba se não parar de ouvir

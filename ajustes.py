@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QColorDialog
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 import config  # noqa: E402
+import fala  # noqa: E402
 import visual  # noqa: E402
 
 PERGUNTA = "quanto tempo leva pra ferver um ovo?"
@@ -155,7 +156,7 @@ def icone_cartao(cfg, estilo, w=150, h=96):
 # ---------- controles ----------
 class Segmentos(QWidget):
     """Botões lado a lado, um marcado."""
-    mudou = pyqtSignal(str)
+    mudou = pyqtSignal(object)
 
     def __init__(self, opcoes, atual):
         super().__init__()
@@ -270,7 +271,7 @@ class Ajustes(QWidget):
         for nome, fazer in paginas:
             if fazer is None:
                 lv.addWidget(rotulo(nome, "secao")); continue
-            b = QPushButton(nome); b.setObjectName("nav"); b.setCheckable(True)
+            b = QPushButton(nome); b.setObjectName("nav"); b.setCheckable(True); b.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             i = self.pilha.addWidget(self.rolavel(fazer()))
             if nome in ("Perfis", "Bolinha", "Cartão", "Animação"):
                 self.visuais.add(i)
@@ -534,10 +535,29 @@ class Ajustes(QWidget):
         ouvir = QPushButton("Ouvir"); ouvir.clicked.connect(self.ouvir_voz)
         vel = self.desl_geral("velocidade_voz", 0.6, 1.6, 0.05, "{:.2f}×", conv=lambda x: round(1 / x, 3), desconv=lambda x: 1 / x)
         linha = QHBoxLayout(); linha.addWidget(vel, 1); linha.addWidget(ouvir)
+        motor = self.seg_geral("motor_voz", fala.MOTORES)
+        for m, b in motor.botoes.items():
+            if not fala.instalado(m):
+                b.setEnabled(False); b.setToolTip("Instale com ./install.sh --vozes-neurais")
+        self.seg_voz = self.seg_geral("voz_nome", fala.VOZES)
+        self.seg_manter = self.seg_geral("manter_voz_min", {5: "5 min", 15: "15 min", 60: "1 hora", 0: "Sempre"})
+        motor.mudou.connect(lambda _: self.atualiza_voz())
+        self.atualiza_voz()
         return self.pagina("Voz", [
             ("Responder falando", self.seg_geral("voz", {"nunca": "Nunca", "quando_pedir": "Quando eu pedir", "sempre": "Sempre"}),
              "“Quando eu pedir”: ela fala se você disser algo como “lê pra mim” ou “responde em voz alta”."),
+            ("Motor", motor,
+             "Piper é instantâneo e leve. XTTS e Chatterbox soam bem mais naturais e rodam na placa de vídeo "
+             "(XTTS é mais rápido e usa ~2 GB; Chatterbox usa ~4 GB)."),
+            ("Voz", self.seg_voz),
+            ("Manter carregada", self.seg_manter,
+             "Depois do último uso, a voz neural fica esse tempo na placa de vídeo pra responder na hora. "
+             "Se ela tiver se desligado, a primeira resposta mostra o texto antes e a voz chega uns segundos depois."),
             ("Velocidade da fala", linha)])
+
+    def atualiza_voz(self):
+        neural = self.tudo["motor_voz"] != "piper"
+        self.seg_voz.setEnabled(neural); self.seg_manter.setEnabled(neural)
 
     def pag_microfone(self):
         self.medidor = QProgressBar(); self.medidor.setRange(0, 3000); self.medidor.setTextVisible(False); self.medidor.setFixedHeight(6)
@@ -561,15 +581,13 @@ class Ajustes(QWidget):
         subprocess.Popen([sys.executable, os.path.join(AQUI, "bolinha.py"), "--demo"], start_new_session=True)
 
     def ouvir_voz(self):
-        vel = self.tudo["velocidade_voz"]
+        cfg = dict(self.tudo)
 
         def tocar():
             try:
-                from piper import PiperVoice, SynthesisConfig
-                v = PiperVoice.load(os.path.join(config.PASTA_DADOS, "voz", "pt_BR-dii.onnx"))
-                pcm = b"".join(c.audio_int16_bytes for c in v.synthesize(
-                    "Oi! É assim que eu vou falar com você.", SynthesisConfig(length_scale=vel)))
-                subprocess.run(["pw-play", "--raw", "--rate", str(v.config.sample_rate), "--channels", "1",
+                pedacos = list(fala.sintetizar("Oi! É assim que eu vou falar com você.", cfg, espera=60))
+                pcm = b"".join(a.tobytes() for _, a, _ in pedacos)
+                subprocess.run(["pw-play", "--raw", "--rate", str(pedacos[0][0]), "--channels", "1",
                                 "--format", "s16", "-"], input=pcm, stderr=subprocess.DEVNULL)
             except Exception as e:
                 print("voz:", e, file=sys.stderr)
