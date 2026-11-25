@@ -25,14 +25,48 @@ DEMO_RESPOSTA = ("Uns 6 a 7 minutos pra gema mole e 9 a 10 pra gema dura, contan
                  "Depois joga na água gelada pra parar o cozimento e descascar fácil.")
 
 
+TELA = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "bolinha", "tela.jpg")
+OLHOU = ""   # o que a bolinha viu ao abrir, pro prompt
+
+HYPR = ("Pra mexer no Hyprland (0.57, config em Lua) use hyprctl. Ver: `hyprctl -j clients` (janelas com address, class, "
+        "title, workspace), `hyprctl -j activewindow`, `hyprctl -j workspaces`, `hyprctl -j monitors`. Agir: "
+        "`hyprctl dispatch '<lua>'`, exemplos: abrir app `hl.dsp.exec_cmd(\"kitty\")` (assim o app não morre quando você "
+        "terminar); abrir no workspace 3 sem sair do atual `hl.dsp.exec_cmd(\"kitty\", { workspace = \"3 silent\" })`; "
+        "ir pro workspace `hl.dsp.focus({ workspace = \"2\" })`; focar janela `hl.dsp.focus({ window = \"address:0x…\" })`; "
+        "mover janela `hl.dsp.window.move({ workspace = \"4\", follow = false, window = \"address:0x…\" })`; fechar "
+        "`hl.dsp.window.close({ window = \"address:0x…\" })`; na janela focada: `hl.dsp.window.fullscreen()`, "
+        "`hl.dsp.window.float({ action = \"toggle\" })`. Use o address de `hyprctl -j clients` pra escolher a janela. "
+        "A sintaxe antiga (`hyprctl dispatch exec …`) não funciona mais. Não mexa na janela da própria bolinha (title "
+        "\"bolinha\") e só feche janelas que ele pediu.")
+
+
+def olhar():
+    """Print do monitor em foco, antes da bolinha aparecer. Só o monitor em foco: os outros podem ter coisa pessoal."""
+    global OLHOU
+    try:
+        mon = next(m for m in json.loads(subprocess.run(["hyprctl", "-j", "monitors"], capture_output=True, text=True,
+                                                       timeout=2).stdout) if m["focused"])
+        os.makedirs(os.path.dirname(TELA), mode=0o700, exist_ok=True)
+        subprocess.run(["grim", "-o", mon["name"], "-t", "jpeg", "-q", "85", TELA], check=True, timeout=5)
+        jan = json.loads(subprocess.run(["hyprctl", "-j", "activewindow"], capture_output=True, text=True, timeout=2).stdout or "{}")
+    except (OSError, ValueError, StopIteration, subprocess.SubprocessError) as e:
+        print("tela:", repr(e), file=sys.stderr)
+        return
+    OLHOU = (f" Quando ele te chamou, eu salvei um print do monitor em foco ({mon['width']}x{mon['height']}) em {TELA}"
+             + (f"; a janela em foco era {jan.get('class')} — \"{jan.get('title')}\"" if jan.get("class") else "")
+             + ". Se a pergunta for sobre algo na tela (\"isso\", \"esse erro\", \"o que é isso\", \"resume essa página\", "
+             "\"traduz aqui\"), leia o print com a ferramenta Read antes de responder; se não for, não leia. O print é do "
+             "momento em que ele te chamou, a tela pode ter mudado depois.")
+
+
 def montar_prompt():
     p = ("Você está respondendo por uma bolinha flutuante de assistente de voz no desktop Linux do usuário. "
          "A pergunta veio de transcrição de voz, pode ter erros. Responda em português, curto e direto "
          "(no máximo ~4 frases), texto puro, sem markdown, sem listas.")
     if CFG["permitir_acoes"]:
-        p += (" Você pode executar ações no computador dele quando ele pedir. No Hyprland, pra abrir programas use "
-              "`hyprctl dispatch exec <comando>` (assim o app não morre quando você terminar). Depois de agir, diga "
-              "em uma frase o que fez.")
+        p += (" Você pode executar ações no computador dele quando ele pedir. " + HYPR +
+              " Depois de agir, diga em uma frase o que fez.")
+    p += OLHOU
     if CFG["voz"] == "quando_pedir":
         p += (" A resposta aparece só escrita, a menos que ele peça pra você falar/responder em voz alta/ler pra ele: "
               "só nesse caso comece a resposta exatamente com [voz].")
@@ -333,9 +367,13 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     QGuiApplication.setDesktopFileName("bolinha")
     visual.registrar_fontes()
+    if CFG["ver_tela"] and not DEMO:
+        olhar()   # antes do show, pra bolinha não sair no print
     b = Bolha()
     signal.signal(signal.SIGTERM, lambda *_: b.fechar())   # atalho de novo = fecha animado (app.quit direto dava segfault no Wayland)
     b.show()
     app.exec()
     os.unlink(LOCK)
+    if os.path.exists(TELA):
+        os.unlink(TELA)
     os._exit(0)   # sai direto: threads de áudio/whisper ainda vivas fariam o Qt dar segfault na desmontagem

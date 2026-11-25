@@ -5,7 +5,8 @@ Um assistente de voz que parece parte do sistema. Você aperta um atalho, uma bo
 - **Reage à sua voz:** a bolinha cresce enquanto você fala e solta um anel fino a cada pico.
 - **Conversa de verdade:** com o cartão aberto, é só voltar a falar. Ela ouve de novo e lembra do que vocês estavam falando.
 - **Fala quando você pede:** "lê pra mim", "responde em voz alta"… Aí a resposta sai falada: na voz da Dii (Piper, instantânea) ou, com as vozes neurais, na da Francisca ou do Antonio (XTTS ou Chatterbox, bem mais naturais).
-- **Age no PC:** "abre a Steam", "quanto espaço livre eu tenho?". O Claude roda no modo automático do Claude Code, que bloqueia comandos destrutivos.
+- **Vê a tela:** "que erro é esse?", "resume essa página", "traduz isso aqui". Quando você chama, ela tira um print do monitor em foco, e o Claude só olha se a pergunta for sobre a tela.
+- **Mexe nas janelas e no PC:** "abre a Steam no workspace 3", "manda o Discord pro 5", "fecha o navegador", "quanto espaço livre eu tenho?". No Hyprland ela move, foca e fecha janelas. O Claude roda no modo automático do Claude Code, que bloqueia comandos destrutivos.
 - **Perfis visuais:** 8 prontos (Minimal, Grafite, Anel, Orbe, Neon, Papel, Pontos, Halo), e você cria os seus. Cada um combina um jeito de bolinha, um cartão e uma animação.
 
 Feito pra Linux com Hyprland, mas roda em qualquer desktop Wayland/X11 com PipeWire.
@@ -59,7 +60,7 @@ Abra **Bolinha — Ajustes** pelo menu. Tem uma prévia ao vivo no topo e tudo s
 - **Bolinha:** disco, anel, orbe, gota, barras, pontos ou halo; cor, cor de destaque e tamanho.
 - **Cartão:** sólido, vidro, contorno neon, balão ou só o texto; cores, cantos, largura, fonte e tamanho do texto.
 - **Animação:** como ela aparece (pop, aparecer, cair, zoom), como vira cartão (mola, suave, elástica, direta), como o texto surge (palavra por palavra, máquina de escrever, linha por linha, tudo de uma vez) e a velocidade.
-- **Claude:** modelo (Haiku, Sonnet ou Opus), se ele pode agir no PC, se segue ouvindo com o cartão aberto e instruções extras.
+- **Claude:** modelo (Haiku, Sonnet ou Opus), se ele pode agir no PC, se pode ver a tela, se segue ouvindo com o cartão aberto e instruções extras.
 - **Voz:** nunca, só quando você pedir ou sempre; motor (Piper, XTTS ou Chatterbox), voz (Francisca ou Antonio), quanto tempo a voz neural fica carregada e a velocidade da fala.
 - **Microfone:** modelo de transcrição, GPU ou CPU, limiar de fala (com medidor ao vivo), pausa que encerra a gravação e tempo máximo.
 
@@ -76,7 +77,7 @@ Pra testar o visual pelo terminal, sem microfone e sem Claude:
 
 - O áudio é transcrito **no seu computador** (faster-whisper) e nunca sai dele.
 - A voz também é gerada localmente (Piper, XTTS ou Chatterbox). As vozes de referência da Francisca e do Antonio são geradas uma vez na instalação com as vozes neurais da Microsoft (edge-tts); depois disso nada sai do PC.
-- Só o **texto** da pergunta vai pro Claude, pela sua conta do Claude Code.
+- O **texto** da pergunta vai pro Claude, pela sua conta do Claude Code. O print da tela só vai se a pergunta for sobre ela. Ele pega só o monitor em foco (os outros nunca) e é apagado quando a bolinha fecha. Dá pra desligar em Ajustes → Claude → "Deixar o Claude ver a tela".
 
 ## Créditos e licenças
 

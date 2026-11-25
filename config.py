@@ -16,6 +16,7 @@ PASTA_DADOS = os.path.join(os.environ.get("XDG_DATA_HOME", os.path.expanduser("~
 GERAL = {
     "modelo_claude": "haiku",     # haiku | sonnet | opus
     "permitir_acoes": True,       # deixa o Claude rodar comandos (modo auto, bloqueia o que for perigoso)
+    "ver_tela": True,             # print do monitor em foco ao abrir; o Claude só lê se a pergunta for sobre a tela
     "instrucoes_extras": "",
     "continuar_ouvindo": True,    # com o cartão aberto, se você falar vira pergunta nova
     "tempo_extra_cartao": 2.0,    # segundos a mais antes do cartão fechar sozinho
