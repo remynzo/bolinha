@@ -4,7 +4,7 @@
 Clique ou Esc fecha. Apertar o atalho de novo com ela aberta também fecha.
 --demo simula pergunta e resposta (pra testar o visual sem mic nem Claude); --demo-voz responde falando.
 Ajustes em ~/.config/bolinha/config.json (ou pelo app "Bolinha — Ajustes")."""
-import json, math, os, random, signal, subprocess, sys, tempfile, threading, time
+import collections, json, math, os, random, signal, subprocess, sys, tempfile, threading, time
 import numpy as np
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QGuiApplication, QPainter
@@ -77,10 +77,39 @@ def montar_prompt():
     return p
 
 
+RUIDO = os.path.join(os.path.dirname(TELA), "ruido.json")   # chiado de fundo de cada microfone, da última vez
+
+
+def limiar(volumes, semente=None):
+    """Volume a partir do qual conta como fala: o limiar dos ajustes ou, num mic com chiado (o do notebook fica em
+    ~1500 calado), 2,5x o ruído de fundo. O ruído é o volume dos 5% blocos mais baixos; a semente (o ruído medido
+    da última vez nesse mic) segura ele quando você já começa falando e ainda não teve silêncio pra medir."""
+    if len(volumes) < 4 and not semente:
+        return float("inf")                            # ainda não sabe o chiado desse mic: espera 0,2 s pra medir
+    piso = float(np.percentile(volumes, 5)) if len(volumes) >= 4 else 0.0
+    if semente:
+        piso = min(piso, semente * 1.3) if piso else semente
+    return max(CFG["silencio_rms"], piso * 2.5)
+
+
+def ruido_do_mic(salvar=None):
+    """Lê (ou salva) o chiado de fundo do microfone padrão em ~/.cache/bolinha/ruido.json."""
+    try:
+        mic = subprocess.run(["pactl", "get-default-source"], capture_output=True, text=True, timeout=2).stdout.strip()
+        tudo = json.load(open(RUIDO)) if os.path.exists(RUIDO) else {}
+        if salvar is None:
+            return tudo.get(mic)
+        tudo[mic] = round(salvar, 1)
+        os.makedirs(os.path.dirname(RUIDO), exist_ok=True)
+        json.dump(tudo, open(RUIDO, "w"))
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
 def bandas(amostras, sr, offset=2.2):
     """(grave, médio, agudo) 0..1 de um pedaço de áudio int16."""
     a = amostras.astype(np.float32)
-    rms = math.sqrt(float((a ** 2).mean()) or 1)
+    rms = float(a.std()) or 1   # desvio, não RMS: o mic do notebook tem deslocamento DC que parecia barulho
     nivel = min(1, max(0, (math.log10(rms) - offset) / 1.5))
     f = np.abs(np.fft.rfft(a)) ** 2
     hz = np.fft.rfftfreq(len(a), 1 / sr)
@@ -270,18 +299,27 @@ class Bolha(QWidget):
         rec = subprocess.Popen(["pw-record", "--raw", "--rate", str(RATE), "--channels", "1", "--format", "s16", "-"],
                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         bloco, dados, falou, calado, seguidos = RATE // 20, bytearray(), False, 0, 0
+        volumes = collections.deque(maxlen=200)    # ~10 s de volume por bloco, pra achar o ruído de fundo do mic
+        semente = ruido_do_mic()
+        estalo = 3
         try:
             while not self.parar.is_set() and not self.fechando and len(dados) < CFG["max_seg"] * RATE * 2:
                 b = rec.stdout.read(bloco * 2)
                 if not b:
                     break
+                if estalo > 0:                         # o mic do notebook estala ao ligar: descarta os primeiros 0,15 s
+                    estalo -= 1
+                    continue
                 dados += b
                 s = np.frombuffer(b, np.int16)
                 self.cena.bandas = bandas(s, RATE)
-                alto = math.sqrt(float((s.astype(np.float32) ** 2).mean())) > CFG["silencio_rms"]
+                v = float(s.astype(np.float32).std())   # sem o deslocamento DC (o mic do notebook tem muito)
+                if v >= 1:                             # o pw-record começa com zeros; não é o ruído do mic
+                    volumes.append(v)
+                alto = v > limiar(volumes, semente)
                 seguidos = seguidos + 1 if alto else 0
                 if not falou:
-                    if seguidos >= (5 if esperar_ate else 1):
+                    if seguidos >= (5 if esperar_ate else 2):
                         falou = True
                         if esperar_ate:
                             self.muda("ouvindo")
@@ -298,6 +336,8 @@ class Bolha(QWidget):
         finally:
             rec.terminate()
             self.cena.bandas = [0, 0, 0]
+        if len(volumes) >= 40:                         # 2 s ou mais: dá pra confiar na medida do chiado
+            ruido_do_mic(float(np.percentile(volumes, 5)))
         if esperar_ate and not falou:
             return None
         return bytes(dados)

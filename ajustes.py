@@ -628,7 +628,7 @@ class Ajustes(QWidget):
                 if not b:
                     break
                 s = np.frombuffer(b, np.int16).astype(np.float32)
-                self.nivel = int(math.sqrt(float((s ** 2).mean()) or 0))
+                self.nivel = int(s.std())   # sem o deslocamento DC, igual a bolinha
         threading.Thread(target=ler, args=(self.mic,), daemon=True).start()
 
         def atualizar():
